@@ -1,5 +1,4 @@
 import logging
-import secrets
 
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
@@ -7,6 +6,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
+from sentry import options
 from sentry.mediators import GrantTypes
 from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
 from sentry.utils import json
@@ -86,8 +86,7 @@ class OAuthTokenView(View):
             open_id_token = OpenIDToken(
                 request.POST.get("client_id"),
                 grant.user_id,
-                # Encrypt with a random secret until we implement secure shared secrets in prod
-                secrets.token_urlsafe(),
+                options.get("codecov.client-secret"),
                 nonce=request.POST.get("nonce"),
             )
             return open_id_token.get_encrypted_id_token(grant=grant)
