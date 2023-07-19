@@ -189,7 +189,7 @@ def find_stacktraces_in_data(data, include_raw=False, include_empty_exceptions=F
         stacktrace,
         # The entry in `exception.values` or `threads.values` containing the `stacktrace` attribute,
         # or None for top-level stacktraces
-        container,
+        container=None,
         # Whether or not the container is from `exception.values`
         is_exception=False,
         # When set to `True`, any stacktrace with `is_exception=True` will result in a
@@ -218,20 +218,20 @@ def find_stacktraces_in_data(data, include_raw=False, include_empty_exceptions=F
     for exc in get_path(data, "exception", "values", filter=True, default=()):
         _report_stack(
             exc.get("stacktrace"),
-            exc,
+            container=exc,
             is_exception=True,
             include_empty_exceptions=include_empty_exceptions,
         )
 
-    _report_stack(data.get("stacktrace"), None)
+    _report_stack(data.get("stacktrace"))
 
     for thread in get_path(data, "threads", "values", filter=True, default=()):
-        _report_stack(thread.get("stacktrace"), thread)
+        _report_stack(thread.get("stacktrace"), container=thread)
 
     if include_raw:
         for info in rv[:]:
             if info.container is not None:
-                _report_stack(info.container.get("raw_stacktrace"), info.container)
+                _report_stack(info.container.get("raw_stacktrace"), container=info.container)
 
     return rv
 
