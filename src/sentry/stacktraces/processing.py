@@ -236,6 +236,9 @@ def find_stacktraces_in_data(
     if include_raw:
         for info in rv:
             if info.container is not None:
+                # We don't set `is_exception` to `True` here, even if `info.is_exception` is set,
+                # because otherwise we'd end up processing each exception container twice in
+                # `process_stacktraces`
                 _report_stack(info.container.get("raw_stacktrace"), container=info.container)
 
     return rv
