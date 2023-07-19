@@ -185,7 +185,18 @@ def find_stacktraces_in_data(data, include_raw=False, include_empty_exceptions=F
     """
     rv = []
 
-    def _report_stack(stacktrace, container, is_exception=False, include_empty_exceptions=False):
+    def _report_stack(
+        stacktrace,
+        # The entry in `exception.values` or `threads.values` containing the `stacktrace` attribute,
+        # or None for top-level stacktraces
+        container,
+        # Whether or not the container is from `exception.values`
+        is_exception=False,
+        # When set to `True`, any stacktrace with `is_exception=True` will result in a
+        # `StacktraceInfo` object, even if it is null or empty or contains nothing by null or empty
+        # frames
+        include_empty_exceptions=False,
+    ):
         if (not is_exception or not include_empty_exceptions) and (
             not stacktrace or not get_path(stacktrace, "frames", filter=True)
         ):
