@@ -28,7 +28,7 @@ function MonitorBadge({status}: MonitorBadgeProps) {
 }
 
 // TODO(ts): Use satisfies
-const statusMap: Record<MonitorStatus, StatusData> = {
+export const statusMap: Record<MonitorStatus, StatusData> = {
   ok: {
     Icon: IconCheckmark,
     color: 'successText',
