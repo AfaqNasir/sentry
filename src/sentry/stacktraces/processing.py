@@ -179,14 +179,16 @@ def find_stacktraces_in_data(data, include_raw=False, include_empty_exceptions=F
     Finds all stacktraces in a given data blob and returns them together with some meta information.
 
     If `include_raw` is True, then also raw stacktraces are included.  If `include_empty_exceptions`
-    is set to `True` then null/empty stacktraces and stacktraces with no or only null/empty frames
-    are included (where they otherwise would not be), with the `is_exception` flag is set on their
-    `StacktraceInfo` object.
+    is set to `True` then, for entries in `exception.values`, null or empty stacktraces and
+    stacktraces with no or only null or empty frames are included (where they otherwise would not
+    be), with the `is_exception` flag is set on their `StacktraceInfo` object.
     """
     rv = []
 
-    def _report_stack(stacktrace, container, is_exception=False):
-        if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
+    def _report_stack(stacktrace, container, is_exception=False, include_empty_exceptions=False):
+        if (not is_exception or not include_empty_exceptions) and (
+            not stacktrace or not get_path(stacktrace, "frames", filter=True)
+        ):
             return
 
         platforms: Set[str] = {
@@ -203,7 +205,12 @@ def find_stacktraces_in_data(data, include_raw=False, include_empty_exceptions=F
         )
 
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        _report_stack(exc.get("stacktrace"), exc, is_exception=include_empty_exceptions)
+        _report_stack(
+            exc.get("stacktrace"),
+            exc,
+            is_exception=True,
+            include_empty_exceptions=include_empty_exceptions,
+        )
 
     _report_stack(data.get("stacktrace"), None)
 
