@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Set
@@ -5,6 +7,7 @@ from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Set
 import sentry_sdk
 from django.utils import timezone
 
+from sentry.db.models import NodeData
 from sentry.models import Project, Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
@@ -16,10 +19,10 @@ op = "stacktrace_processing"
 
 
 class StacktraceInfo(NamedTuple):
-    stacktrace: Any
-    container: Any
-    platforms: Any
-    is_exception: Any
+    stacktrace: Mapping[str, Any] | None
+    container: Mapping[str, Any] | None
+    platforms: Set[str]
+    is_exception: bool
 
     def __hash__(self) -> int:
         return id(self)
@@ -174,7 +177,9 @@ class StacktraceProcessor:
         return False
 
 
-def find_stacktraces_in_data(data, include_raw=False, include_empty_exceptions=False):
+def find_stacktraces_in_data(
+    data: NodeData, include_raw: bool = False, include_empty_exceptions: bool = False
+) -> list[StacktraceInfo]:
     """
     Finds all stacktraces in a given data blob and returns them together with some meta information.
 
@@ -186,17 +191,17 @@ def find_stacktraces_in_data(data, include_raw=False, include_empty_exceptions=F
     rv = []
 
     def _report_stack(
-        stacktrace,
+        stacktrace: Mapping[str, Any] | None,
         # The entry in `exception.values` or `threads.values` containing the `stacktrace` attribute,
         # or None for top-level stacktraces
-        container=None,
+        container: Mapping[str, Any] | None = None,
         # Whether or not the container is from `exception.values`
-        is_exception=False,
+        is_exception: bool = False,
         # When set to `True`, any stacktrace with `is_exception=True` will result in a
         # `StacktraceInfo` object, even if it is null or empty or contains nothing by null or empty
         # frames
-        include_empty_exceptions=False,
-    ):
+        include_empty_exceptions: bool = False,
+    ) -> None:
         if (not is_exception or not include_empty_exceptions) and (
             not stacktrace or not get_path(stacktrace, "frames", filter=True)
         ):
