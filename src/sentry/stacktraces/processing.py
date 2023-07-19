@@ -174,7 +174,7 @@ class StacktraceProcessor:
         return False
 
 
-def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
+def find_stacktraces_in_data(data, include_raw=False, include_empty_exceptions=False):
     """Finds all stacktraces in a given data blob and returns it
     together with some meta information.
 
@@ -203,7 +203,7 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
         )
 
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        _report_stack(exc.get("stacktrace"), exc, is_exception=with_exceptions)
+        _report_stack(exc.get("stacktrace"), exc, is_exception=include_empty_exceptions)
 
     _report_stack(data.get("stacktrace"), None)
 
@@ -313,7 +313,7 @@ def _update_frame(frame: Dict[str, Any], platform: Optional[str]) -> None:
 def should_process_for_stacktraces(data):
     from sentry.plugins.base import plugins
 
-    infos = find_stacktraces_in_data(data, with_exceptions=True)
+    infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     platforms: Set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
@@ -512,7 +512,7 @@ def dedup_errors(errors):
 
 
 def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
-    infos = find_stacktraces_in_data(data, with_exceptions=True)
+    infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:
         processors = get_processors_for_stacktraces(data, infos)
     else:
