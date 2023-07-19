@@ -175,13 +175,13 @@ class StacktraceProcessor:
 
 
 def find_stacktraces_in_data(data, include_raw=False, include_empty_exceptions=False):
-    """Finds all stacktraces in a given data blob and returns it
-    together with some meta information.
+    """
+    Finds all stacktraces in a given data blob and returns them together with some meta information.
 
-    If `include_raw` is True, then also raw stacktraces are included.  If
-    `with_exceptions` is set to `True` then stacktraces of the exception
-    are always included and the `is_exception` flag is set on that stack
-    info object.
+    If `include_raw` is True, then also raw stacktraces are included.  If `include_empty_exceptions`
+    is set to `True` then null/empty stacktraces and stacktraces with no or only null/empty frames
+    are included (where they otherwise would not be), with the `is_exception` flag is set on their
+    `StacktraceInfo` object.
     """
     rv = []
 
