@@ -234,7 +234,7 @@ def find_stacktraces_in_data(
         _report_stack(thread.get("stacktrace"), container=thread)
 
     if include_raw:
-        for info in rv[:]:
+        for info in rv:
             if info.container is not None:
                 _report_stack(info.container.get("raw_stacktrace"), container=info.container)
 
