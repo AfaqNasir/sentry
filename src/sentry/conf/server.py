@@ -606,7 +606,7 @@ AUTH_PROVIDER_LABELS = {
     "visualstudio": "Visual Studio",
 }
 
-SENTRY_DATA_SECRECY_ORGS = []
+SENTRY_DATA_SECRECY_ORGS: list[str] = []
 
 import random
 
