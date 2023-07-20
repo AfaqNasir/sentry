@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Callable
 
-from mypy.nodes import ARG_POS
-from mypy.plugin import FunctionSigContext, Plugin
+from mypy.nodes import ARG_POS, TypeInfo
+from mypy.plugin import FunctionSigContext, MethodSigContext, Plugin
 from mypy.types import CallableType, FunctionLike, Instance
 
 
@@ -59,19 +59,53 @@ def replace_trailing_using_sig_callback(ctx: FunctionSigContext) -> CallableType
     )
 
 
+_FUNCTION_SIG_OVERRIDES: dict[str, Callable[[FunctionSigContext], FunctionLike]] = {
+    "django.db.transaction.atomic": replace_transaction_atomic_sig_callback,
+    "django.db.transaction.get_connection": replace_get_connection_sig_callback,
+    "django.db.transaction.on_commit": replace_trailing_using_sig_callback,
+    "django.db.transaction.set_rollback": replace_trailing_using_sig_callback,
+}
+
+
+def field_descriptor_no_overloads(ctx: MethodSigContext) -> FunctionLike:
+    # ignore the class / non-model instance descriptor overloads
+    signature = ctx.default_signature
+    # replace `def __get__(self, inst: Model, owner: Any) -> _GT:`
+    # with `def __get__(self, inst: Any, owner: Any) -> _GT:`
+    if str(signature.arg_types[0]) == "django.db.models.base.Model":
+        return signature.copy_modified(arg_types=[signature.arg_types[1]] * 2)
+    else:
+        return signature
+
+
 class SentryMypyPlugin(Plugin):
     def get_function_signature_hook(
         self, fullname: str
     ) -> Callable[[FunctionSigContext], FunctionLike] | None:
-        if fullname == "django.db.transaction.atomic":
-            return replace_transaction_atomic_sig_callback
-        if fullname == "django.db.transaction.get_connection":
-            return replace_get_connection_sig_callback
-        if fullname == "django.db.transaction.on_commit":
-            return replace_trailing_using_sig_callback
-        if fullname == "django.db.transaction.set_rollback":
-            return replace_trailing_using_sig_callback
-        return None
+        return _FUNCTION_SIG_OVERRIDES.get(fullname)
+
+    def get_method_signature_hook(
+        self, fullname: str
+    ) -> Callable[[MethodSigContext], FunctionLike] | None:
+        if fullname == "django.db.models.fields.Field":
+            return field_descriptor_no_overloads
+
+        clsname, _, methodname = fullname.rpartition(".")
+        if methodname != "__get__":
+            return None
+
+        clsinfo = self.lookup_fully_qualified(clsname)
+        if clsinfo is None or not isinstance(clsinfo.node, TypeInfo):
+            return None
+
+        fieldinfo = self.lookup_fully_qualified("django.db.models.fields.Field")
+        if fieldinfo is None:
+            return None
+
+        if fieldinfo.node in clsinfo.node.mro:
+            return field_descriptor_no_overloads
+        else:
+            return None
 
 
 def plugin(version: str) -> type[SentryMypyPlugin]:
