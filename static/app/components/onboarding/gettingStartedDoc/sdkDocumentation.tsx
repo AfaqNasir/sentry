@@ -54,6 +54,7 @@ export const migratedDocs = [
   'kotlin',
   'node',
   'node-express',
+  'node-koa',
   'electron',
 ];
 
